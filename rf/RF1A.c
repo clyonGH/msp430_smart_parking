@@ -191,10 +191,9 @@ void ReceiveOff(void)
   RF1AIFG &= ~BIT4;                         // Clear pending IFG
   
   // Previous state has been Rx
-  Strobe( RF_SIDLE );
+  Strobe(RF_SIDLE);
   delay_RF(RXtoIDLE_Time);
-  Strobe( RF_SFRX);      /* Flush the receive FIFO of any residual data */
-
+  Strobe(RF_SRX);
 }
 
 

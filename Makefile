@@ -4,6 +4,7 @@ TARGET=test_rf
 SRCDIR=src
 INCLDIR=include
 RFDIR=rf
+DEFINES=
 
 SOURCE=$(wildcard $(SRCDIR)/*.c)
 SOURCE+=$(wildcard $(RFDIR)/*.c)
@@ -23,7 +24,18 @@ clean:
 	echo $(OBJ)
 	@-rm -f $(TARGET) $(OBJ)
 
+## Transmission
+tx: DEFINES += -DTX=1
+tx: DEFINES += -DRX=0
+tx: $(TARGET)
+
+## Reception
+rx: DEFINES += -DTX=0
+rx: DEFINES += -DRX=1
+rx: $(TARGET)
+
 ## Rule for making the actual target
+$(TARGET): CFLAGS += $(DEFINES)
 $(TARGET): $(OBJ)
 	@echo "============="
 	@echo "Linking the target $@"
@@ -38,5 +50,5 @@ $(TARGET): $(OBJ)
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
-deploy:$(TARGET)
+deploy:
 	mspdebug rf2500 "prog $(TARGET)"
