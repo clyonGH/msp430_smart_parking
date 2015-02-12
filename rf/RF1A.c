@@ -1,7 +1,10 @@
 #include <msp430.h> // generic file for register name, I/O, ...
+#include <stdint.h>
 
 #include "RF1A.h"
 
+
+void set_color(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
 
 // ##########################################################
 // This definitions and delay_RF were added by Penko Bozhkov
@@ -170,7 +173,7 @@ void rf_transmit(unsigned char *buffer, unsigned char length)
    */    
   WriteBurstReg(RF_TXFIFOWR, buffer, length);     
   
-  Strobe( RF_STX );                         // Strobe STX   
+  Strobe( RF_STX );
 }
 
 void ReceiveOn(void)
@@ -179,9 +182,9 @@ void ReceiveOn(void)
   RF1AIE  |= BIT4;                          // Enable the interrupt 
   
   // Previous state has been Tx
-  Strobe( RF_SIDLE );
+  Strobe(RF_SIDLE);
   delay_RF(TXtoIDLE_Time);
-  Strobe( RF_SRX );
+  Strobe(RF_SRX);
   delay_RF(IDLEtoRX_Time);
 }
 
@@ -193,7 +196,7 @@ void ReceiveOff(void)
   // Previous state has been Rx
   Strobe(RF_SIDLE);
   delay_RF(RXtoIDLE_Time);
-  Strobe(RF_SRX);
+  Strobe(RF_SFRX);
 }
 
 

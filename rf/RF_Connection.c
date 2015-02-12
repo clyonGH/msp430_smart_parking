@@ -72,7 +72,7 @@ void rf_init(void){
   
   // Increase PMMCOREV level to 2 in order to avoid low voltage error 
   // when the RF core is enabled
-  SetVCore(3);
+  SetVCore(2);
   ResetRadioCore();   
 
   // For WOR 
