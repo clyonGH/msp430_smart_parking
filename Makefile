@@ -27,11 +27,19 @@ clean:
 ## Transmission
 tx: DEFINES += -DTX=1
 tx: DEFINES += -DRX=0
+tx: DEFINES += -DID_DEVICE=1
+tx: DEFINES += -DNEXT_DEVICE=1
+tx: DEFINES += -DID_SRC=$(SRC)
+tx: DEFINES += -DID_DEST=$(DEST)
 tx: $(TARGET)
 
 ## Reception
 rx: DEFINES += -DTX=0
 rx: DEFINES += -DRX=1
+rx: DEFINES += -DID_SRC=1
+rx: DEFINES += -DID_DEST=1
+rx: DEFINES += -DID_DEVICE=$(ID)
+rx: DEFINES += -DNEXT_DEVICE=$(NEXT)
 rx: $(TARGET)
 
 ## Rule for making the actual target

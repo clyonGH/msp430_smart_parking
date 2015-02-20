@@ -1,83 +1,23 @@
 #include <msp430.h>
 #include <stdint.h>
 #include "RF1A.h"
+#include "rf_communication.h"
+#include "led_commands.h"
 
 #define BUFFER_SIZE 32
-#define ID_SRC 43
-#define ID_DEST 25
-#define ID_DEVICE 25
 
-void set_color(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
-void stop_led(void);
-void send_ack(unsigned char);
-void send_state(void);
+#define FW_SERIAL 0x06
+
 unsigned char buffer[BUFFER_SIZE];
 unsigned char ptr_buf = 1; // First byte of the buffer reserved for the size
 unsigned char id_src = 0;
 unsigned char id_dest = 0;
-unsigned char waiting_for_ack = 0;
+unsigned char state_sensor = 'u';
+unsigned char state_hub = RCV_STATE;
 
-void packet_received(void){
-	uint8_t RxBufferLength;
-	uint8_t RxBuffer[BUFFER_SIZE];
-	
-	RxBufferLength = ReadSingleReg(RXBYTES);
-	ReadBurstReg(RF_RXFIFORD, RxBuffer, RxBufferLength);
+extern unsigned char waiting_for_ack;
 
-	if(RX){
-		id_src = RxBuffer[1];
-		id_dest = RxBuffer[2];
-		// If right destination
-		if(id_dest == ID_DEVICE){
-			switch(RxBuffer[3]){
-				case 'g':
-					set_color(0x00, 0x00, 0x80, 0x00, 0x00, 0x80);
-					break;
-				case 'r':
-					set_color(0x80, 0x00, 0x00, 0x80, 0x00, 0x00);
-					break;
-				default:
-					set_color(0x80, 0x80, 0x80, 0x80, 0x80, 0x80);
-					break;
-			}
-			ReceiveOff();
-			// Send ack
-			Strobe(RF_SFTX);
-			send_ack(id_src);
-			ReceiveOn();
-		}
-	}else if(TX){
-		// Checking if ack received
-		if(RxBuffer[1] == ID_SRC){
-			ReceiveOff();
-			waiting_for_ack = 0;
-		}
-	}
-}
 
-void send_ack(unsigned char source){
-	unsigned char buffer_ack[BUFFER_SIZE];
-	buffer_ack[0] = 1;
-	buffer_ack[1] = source;
-	rf_transmit(buffer_ack, 2);
-	__delay_cycles(100000); // Delay to allow a proper transmission
-}
-
-void send_packet(void){
-	buffer[0] = ptr_buf-1;
-	rf_transmit(buffer, ptr_buf);
-	__delay_cycles(10000);
-
-	switch(buffer[3]){
-		case 'g':
-			set_color(0x00, 0x00, 0x00, 0x80, 0x00, 0x00);
-			break;
-		case 'r':
-			set_color(0x80, 0x00, 0x00, 0x00, 0x00, 0x00);
-			break;
-		default: break;
-	}
-}
 static void RF1A_interface_error_handler(void){
 	switch(RF1AIFERRV){
 		case 0: break; // No error
@@ -111,7 +51,8 @@ static void RF1A_interrupt_handler(void){
 		case 14: break; // RFTXIFG
 	}
 }
-// ISR
+
+// RF interrupt
 #pragma vector=CC1101_VECTOR
 __interrupt void CC1101_ISR(void){
 	switch(RF1AIV){ // Prioritizing Radio Core Interrupts
@@ -131,12 +72,36 @@ __interrupt void CC1101_ISR(void){
 		case 18: break; // RFIFG8
 		case 20: // RFIFG9 - TX end-of-packet
 			Strobe(RF_SFTX);
-			ReceiveOn();
+			if(TX)
+				ReceiveOn();
 			if(RX){
-				set_color(0x80, 0x80, 0x00, 0x80, 0x80, 0x00);
-				__delay_cycles(10000);
-				waiting_for_ack = 0;
+				if(state_hub == SEND_ACK){
+					// Ack for sensors sent
+					stop_led();
+					__delay_cycles(10000);
+					if(id_src == 12)
+						set_color(0x80, 0x80, 0x00, 0x00, 0x00, 0x00);
+					else if(id_src == 43)
+						set_color(0x00, 0x00, 0x00, 0x80, 0x80, 0x00);	
+					__delay_cycles(10000);
+					// Next step: forwarding the state
+					state_hub = FW_STATE;
+					if(NEXT_DEVICE != 0){
+    	                forward_state(id_src, state_sensor);
+						set_color(0x00, 0x80, 0x00, 0x00, 0x80, 0x00);
+						waiting_for_ack = 1;
+					}else{
+						ReceiveOn();
+        	            state_hub = RCV_STATE + FW_SERIAL;
+					}
+				}else{
+					// State forwarded to next hub
+					ReceiveOn();
+					__delay_cycles(10000);
+				}
 			}
+stop_led();
+__delay_cycles(10000);
 			break;	
 		case 22: break; // RFIFG10
 		case 24: break; // RFIFG11
@@ -147,6 +112,7 @@ __interrupt void CC1101_ISR(void){
 	}
 }
 
+// Switch interrupt
 #pragma vector=PORT2_VECTOR
 __interrupt void Port_2(void){
 	if(TX){
@@ -157,5 +123,25 @@ __interrupt void Port_2(void){
 		P2IFG &= ~BIT3; // P2.3 IFG cleared
 		P2IES ^= BIT3; // toggling transition (htl ot lth)
 		P2IE |= BIT3; // P2.3 interrupt enabled
+	}
+}
+
+// Serial interrupt
+#pragma vector=USCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void){
+	if(RX){
+		switch(UCA0IV){
+    		case 0: break;                           // Vector 0 - no interrupt
+			case 2:                                  // Vector 2 - RXIFG
+//				while (!(UCA0IFG&UCTXIFG));       // USCI_A0 TX buffer ready?
+//				UCA0TXBUF = UCA0RXBUF;            // TX -> RXed character
+				break;
+			case 4:									 // Vector 4 - TXIFG
+				break;
+			default: break;
+		}
+		P2IFG &= ~BIT3; // P2.3 IFG cleared
+		P2IFG &= ~BIT7; // P2.7 IFG cleared
+		P2IE |= BIT3 + BIT7; // P2.3 and P2.7 interrupts enabled
 	}
 }
