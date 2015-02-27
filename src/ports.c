@@ -1,3 +1,5 @@
+/* Code written by Celine LY (2015) */
+
 #include <cc430f5137.h>
 
 // Mapping the LEDs using the PWM

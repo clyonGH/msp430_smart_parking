@@ -1,3 +1,5 @@
+/* Code written by Celine LY (2015) */
+
 #include <msp430.h>
 #include <stdint.h>
 #include "RF1A.h"
@@ -6,15 +8,12 @@
 
 #define BUFFER_SIZE 32
 
-#define FW_SERIAL 0x06
-
 unsigned char buffer[BUFFER_SIZE];
 unsigned char ptr_buf = 1; // First byte of the buffer reserved for the size
 unsigned char id_src = 0;
 unsigned char id_dest = 0;
-unsigned char state_sensor = 'u';
+unsigned char state_sensor = IDLE;
 unsigned char state_hub = RCV_STATE;
-
 extern unsigned char waiting_for_ack;
 
 
@@ -35,6 +34,7 @@ static void RF1A_interface_error_handler(void){
 			break;
 	}
 }
+
 // If RF1A_interrupt_handler is called, an interface interrupt has occured.
 static void RF1A_interrupt_handler(void){
 // RF1A interrupt is pending
@@ -92,6 +92,7 @@ __interrupt void CC1101_ISR(void){
 						waiting_for_ack = 1;
 					}else{
 						ReceiveOn();
+						// Setting state to forward to the serial port
         	            state_hub = RCV_STATE + FW_SERIAL;
 					}
 				}else{
@@ -100,8 +101,8 @@ __interrupt void CC1101_ISR(void){
 					__delay_cycles(10000);
 				}
 			}
-stop_led();
-__delay_cycles(10000);
+			stop_led();
+			__delay_cycles(10000);
 			break;	
 		case 22: break; // RFIFG10
 		case 24: break; // RFIFG11

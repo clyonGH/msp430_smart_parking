@@ -1,3 +1,5 @@
+/* Code written by Celine LY (2015) */
+
 #include <msp430.h>
 #include <stdint.h>
 #include "RF1A.h"
@@ -19,6 +21,7 @@ extern unsigned char state_hub;
 uint8_t RxBufferLength;
 uint8_t RxBuffer[BUFFER_SIZE];
 
+// Sending an ack
 void send_ack(unsigned char source){
 	// Current step: sending the ack
 	state_hub = SEND_ACK;
@@ -31,6 +34,7 @@ void send_ack(unsigned char source){
 	__delay_cycles(100000); // Delay to allow a proper transmission
 }
 
+// Dealing with the packet received
 void packet_received(void){
 	RxBufferLength = ReadSingleReg(RXBYTES);
 	ReadBurstReg(RF_RXFIFORD, RxBuffer, RxBufferLength);
@@ -92,6 +96,7 @@ void packet_received(void){
 	}
 }
 
+// Sending a packet
 void send_packet(void){
 	buffer[0] = ptr_buf-1;
 	rf_transmit(buffer, ptr_buf);
@@ -110,6 +115,8 @@ void send_packet(void){
 
 // From sensor to hub
 void send_state(void){
+	// Debounce delay
+	__delay_cycles(15000);
     ptr_buf = 1;
 	// Data sent: size / src / dest / state_sensor
 	buffer[ptr_buf++] = ID_SRC;

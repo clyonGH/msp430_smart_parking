@@ -1,3 +1,5 @@
+/* Code written by Celine LY (2015) */
+
 #include <cc430f5137.h>
 #include <stdint.h>
 #include "RF1A.h"
@@ -8,7 +10,6 @@
 #include "serial.h"
 
 #define BUFFER_SIZE 32 // Warning: the buffer size necessarily includes 2 bytes: RSSI and LQI
-#define ID_PARKING	1
 
 extern unsigned char buffer[BUFFER_SIZE];
 extern unsigned char ptr_buf;
@@ -21,7 +22,8 @@ unsigned char waiting_for_ack = 0;
 
 int main(void){
 	WDTCTL = WDTPW + WDTHOLD; // Stopping WDT
-	init_serial();
+	if(RX)
+		init_serial();
 	port_mapping(); // LED configuration
 	rf_init();
 	if(TX)
@@ -38,9 +40,10 @@ int main(void){
 		init_inputP2(BIT3);
 	}
 
-set_color(0x80, 0x00, 0x00, 0x80, 0x00, 0x00);
-__delay_cycles(15000);
-stop_led();
+	set_color(0x80, 0x00, 0x00, 0x80, 0x00, 0x00);
+	__delay_cycles(15000);
+	stop_led();
+	__delay_cycles(10000);
 
 	while(1){
 		if(TX){ // Sensor
@@ -72,10 +75,13 @@ stop_led();
 				unsigned char iBuffer = 0;
 				while (!(UCA0IFG&UCTXIFG));       // USCI_A0 TX buffer ready?
 					UCA0TXBUF = RxBufferLength+'0';
+
+				while (!(UCA0IFG&UCTXIFG));       // USCI_A0 TX buffer ready?
+                    UCA0TXBUF = ID_PARKING;
 				
 				for(iBuffer = 0; iBuffer <= RxBufferLength; iBuffer++) {
 					while (!(UCA0IFG&UCTXIFG));       // USCI_A0 TX buffer ready?
-					if(RxBuffer[iBuffer] == 25)
+/*					if(RxBuffer[iBuffer] == 25)
 						UCA0TXBUF = 's';
 					if(RxBuffer[iBuffer] == 14)
                         UCA0TXBUF = 'd';					
@@ -85,9 +91,13 @@ stop_led();
                         UCA0TXBUF = '0';
 					if(RxBuffer[iBuffer] == 1)
                         UCA0TXBUF = '1';
-
-//					UCA0TXBUF = RxBuffer[iBuffer];
+*/
+					if((iBuffer == 3) || (iBuffer == 4))
+						UCA0TXBUF = RxBuffer[iBuffer];
 				}
+				
+				while (!(UCA0IFG&UCTXIFG));       // USCI_A0 TX buffer ready?
+                    UCA0TXBUF = '\0';
 				state_hub = RCV_STATE;			
 			}
 		}

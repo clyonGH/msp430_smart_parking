@@ -1,0 +1,13 @@
+End-of-study project by Mathieu GERIER and Céline LY
+
+To be modified
+At the moment ID_PARKING is not well implemented; the only parking id that will be sent through the serial port is the one belonging to the global hub...
+> forward_state() needs to be changed
+> main() needs to be changed
+
+To be improved/added
+a) A delay needs to be set for the sensor to stop sending its state (momentarily at least) if no ack is received.
+b) Sensors should be repeatedly checked to make sure they are still operative.
+c) LPM/WOR is not implemented.
+d) CCA is not implemented.
+e) Regarding the network, sensors and hubs are all allocated statically.

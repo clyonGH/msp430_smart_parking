@@ -5,12 +5,11 @@ void init_serial(void){
 	// Port Mapping
 	PMAPPWD = 0x02D52;			// Get write-access to port mapping regs
 	P2MAP3 = PM_UCA0RXD;		// Map UCA0RXD output to P2.3
-	P2MAP7 = PM_UCA0TXD;		// Map UCA0TXD output to P2.7
+	P2MAP6 = PM_UCA0TXD;		// Map UCA0TXD output to P2.6
 	PMAPPWD = 0;				// Lock port mapping registers
 
-	P2DIR |= BIT7;				// Set P2.7 as TX output
-//	P2DIR &= BIT3;
-	P2SEL |= BIT3 + BIT7;		// P2.3 & P2.7 to UART function
+	P2DIR |= BIT6;				// Set P2.6 as TX output
+	P2SEL |= BIT3 + BIT6;		// P2.3 & P2.6 to UART function
 
 	// UART configuration
 	UCA0CTL1 |= UCSWRST;		// Put state machine in reset	

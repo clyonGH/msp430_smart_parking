@@ -1,9 +1,9 @@
-// Functions that set and stop the LEDs using the PWM
 #include <msp430.h>
 #include <stdint.h>
 
 #define PWM_PERIOD 255
 
+// Functions that set and stop the LEDs using the PWM
 
 // Setting the LEDs with the PWM
 void set_color(uint8_t red, uint8_t blue, uint8_t green, uint8_t red2, uint8_t blue2, uint8_t green2){
